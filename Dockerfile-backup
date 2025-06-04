@@ -1,0 +1,35 @@
+FROM ubuntu:22.04
+
+ENV PATH=/app/bin:$PATH
+WORKDIR /app
+
+# Export default app port
+EXPOSE 3000
+
+ARG TARGETARCH
+
+# Cài hệ thống và Node.js
+RUN export DEBIAN_FRONTEND=noninteractive && \
+    apt-get update && apt-get -y dist-upgrade && \
+    apt-get -y install wget python3 build-essential curl git graphicsmagick openjdk-8-jdk yasm cmake libzmq3-dev libprotobuf-dev && \
+    curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
+    apt-get install -y nodejs && \
+    npm install -g npm && \
+    useradd --system --create-home --shell /usr/sbin/nologin stf && \
+    mkdir -p /app /app/bundletool && \
+    wget -q https://github.com/google/bundletool/releases/download/1.2.0/bundletool-all-1.2.0.jar -O /app/bundletool/bundletool.jar
+
+# Copy mã nguồn vào
+COPY . /app
+
+# Cài node_modules
+RUN chown -R stf:stf /app && \
+    su stf -s /bin/bash -c "cd /app && npm install --loglevel http"
+
+# Gán quyền thực thi
+RUN chmod +x /app/bin/stf && ln -s /app/bin/stf /usr/local/bin/stf && \
+    rm -rf /tmp/* /root/.npm /root/.cache /var/lib/apt/lists/*
+
+USER stf
+
+CMD ["stf", "--help"]
